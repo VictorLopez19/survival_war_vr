@@ -1,0 +1,415 @@
+html,
+body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    font-family: 'Poppins', sans-serif;
+}
+
+#three-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 60vh !important;
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    z-index: 0 !important;
+}
+
+
+#three-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 200 !important;
+
+    background: radial-gradient(ellipse at center,
+            rgba(255, 0, 0, 0) 40%,
+            rgba(255, 0, 0, 0.4) 70%,
+            rgba(147, 0, 0, 0.8) 90%,
+            rgb(144, 0, 0) 100%);
+
+    opacity: 0;
+    /* Inicialmente no visible */
+    transition: opacity 1s ease-in-out;
+    /* Para transición suave */
+}
+
+#three-container.show-border::before {
+    opacity: 1;
+    /* Se vuelve visible cuando se agrega esta clase */
+}
+
+#three-container div {
+    width: 100%;
+    height: 100%;
+}
+
+#three-container div div {
+    height: auto;
+    width: auto;
+    z-index: 0 !important;
+    top: 55px !important;
+}
+
+#three-container canvas {
+    z-index: 10 !important;
+}
+
+#three-container div div {
+    height: auto;
+    width: auto;
+    z-index: 0 !important;
+    top: 55px !important;
+}
+
+#blocker {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 15 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+}
+
+#instructions {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.allow-touch-styles {
+    top: 55px !important;
+    right: 0px !important;
+}
+
+#informacion {
+    font-size: 13px;
+    text-align: justify;
+}
+
+.botones,
+.control {
+    font-size: 12px;
+}
+
+#loadingMessage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('../assets/img/back.jpg');
+    /* Cambia por la ruta real */
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100 !important;
+    color: white;
+}
+
+#loadingMessage::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.65);
+    /* Oscurece la imagen */
+    z-index: 1;
+}
+
+/* Asegura que el contenido esté por encima del overlay */
+#loadingMessage>* {
+    z-index: 2 !important;
+}
+
+#loadingMessage.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#spinner.hidden,
+#txtSpinner.hidden {
+    opacity: 0;
+    width: 0 !important;
+    height: 0 !important;
+    pointer-events: none;
+}
+
+#spinner,
+#txtSpinner {
+    transition: opacity 1s ease;
+    /* Transición suave de 0.5 segundos */
+    transition: width 1s ease;
+    transition: height 1s ease;
+}
+
+.game-title {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 5em;
+    color: white;
+    text-shadow:
+        0 0 5px #a80000,
+        0 0 10px #a80000,
+        0 0 20px #a80000,
+        0 0 40px #a80000;
+    margin-bottom: 50px;
+    z-index: 2;
+}
+
+.spinner {
+    width: 60px !important;
+    height: 60px !important;
+    border: 4px solid transparent;
+    border-top: 4px solid #ffffff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    box-sizing: border-box;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+#loadingMessage p {
+    margin-top: 10px;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+footer {
+    height: auto;
+}
+
+.scoreboard {
+    z-index: 20 !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    position: absolute;
+    /* Para posicionar en la parte superior */
+    top: 0;
+    /* Alinea al principio de la parte superior */
+    left: 50%;
+    /* Centra horizontalmente */
+    transform: translateX(-50%);
+    /* Ajuste fino para centrar completamente */
+    text-align: center;
+
+    width: auto !important;
+    height: auto !important;
+}
+
+.scoreboard div {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin: 0 15px;
+}
+
+.scoreboard div div {
+    width: 100px !important;
+    background-color: blue;
+}
+
+.scoreboard div:first-child i {
+    color: #3396ff;
+    font-size: 24px;
+    margin: 10px 0;
+}
+
+.scoreboard div:first-child div {
+    display: flex;
+    flex-direction: column;
+    justify-content: end;
+    align-items: end;
+    padding-right: 15px;
+    border-left: 3px solid #3396ff;
+    border-right: 3px solid #3396ff;
+    background-color: rgba(51, 150, 255, 0.5);
+}
+
+.scoreboard div:last-child i {
+    color: #fe1c1c;
+    font-size: 24px;
+    margin: 10px 0;
+}
+
+.scoreboard div:last-child div {
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: start;
+    padding-left: 15px;
+    border-left: 3px solid #bd0505;
+    border-right: 3px solid #fe1c1c;
+    background-color: rgba(254, 28, 28, 0.5);
+}
+
+.mision,
+.time,
+.kills {
+    margin: 10px;
+    font-size: 14px;
+    color: white;
+}
+
+.stats {
+    z-index: 20 !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    position: absolute;
+    /* Para posicionar en la parte superior */
+    bottom: 0;
+    /* Alinea al principio de la parte superior */
+    left: 50%;
+    /* Centra horizontalmente */
+    transform: translateX(-50%);
+    /* Ajuste fino para centrar completamente */
+    text-align: center;
+
+    width: auto !important;
+    height: auto !important;
+
+    color: white;
+    font-size: 12px;
+}
+
+.stats div {
+    width: 300px !important;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#indBullets,
+#indVida {
+    width: 200px !important;
+    height: 7px !important;
+    background-color: #ddd;
+    border: 1px solid #000;
+    border-radius: 10px;
+    margin: 10px;
+    box-sizing: border-box;
+}
+
+#progressBarBullets,
+#progressBarVida {
+    height: 100% !important;
+    width: 100% !important;
+    /* Inicialmente vacío */
+    background-color: #a80000;
+    /* Color de la barra de progreso */
+    border-radius: 5px;
+}
+
+#progressBarBullets {
+    background-color: #ffc107;
+}
+
+#noBalas,
+#fuerza {
+    font-weight: bold;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+#fuerza,
+#noBalas {
+    white-space: pre;
+    text-align: justify;
+    width: 120px !important;
+    display: flex;
+    flex-direction: column;
+    align-items: end;
+    justify-content: space-between;
+}
+
+#modalAlerta {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 16px 24px;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    display: none; /* Inicialmente está oculta */
+    align-items: center;
+    font-family: sans-serif;
+    opacity: 0; /* Inicialmente invisible */
+    transform: translateX(-50%) translateY(-100%); /* Fuera de la pantalla */
+    animation: aparecer 0.4s ease-out;
+    transition: opacity 1s ease, transform 1s ease;
+    gap: 16px;
+}
+
+#modalAlerta.mostrar {
+    display: flex; /* Muestra la alerta */
+    opacity: 1; /* Hace visible la alerta */
+    transform: translateX(-50%) translateY(0); /* Vuelve a su posición */
+}
+
+#modalAlerta .icono {
+    font-size: 24px;
+}
+
+#modalAlerta .contenido {
+    display: flex;
+    flex-direction: column;
+}
+
+#modalAlerta .titulo {
+    font-weight: bold;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+#modalAlerta .descripcion {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+@keyframes aparecer {
+    from {
+        transform: translateX(-50%) translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
