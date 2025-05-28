@@ -4,6 +4,10 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Octree } from 'three/addons/math/Octree.js';
 import { Capsule } from 'three/addons/math/Capsule.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { VRButton } from 'three/addons/webxr/VRButton.js';
+import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
 import { AudioListener, AudioLoader, PositionalAudio } from 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js';
 
 const clock = new THREE.Clock();
@@ -42,6 +46,10 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.VSMShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+renderer.shadowMap.enabled = true;
+renderer.xr.enabled = true;
+
 container.appendChild(renderer.domElement);
 
 const GRAVITY = 30;
@@ -79,6 +87,13 @@ let isPlay = false;
 /* SONIDOS */
 let shoot = new Audio('./assets/sounds/shoot.mp3');
 let music = new Audio('./assets/sounds/music.mp3');
+
+/* VR */
+let hand1, hand2;
+let controller1, controller2;
+let controllerGrip1, controllerGrip2;
+
+let controls_vr;
 
 
 
@@ -1042,6 +1057,58 @@ function incrementaBalas() {
 
 const intervaBalaslId = setInterval(incrementaBalas, 1500);
 
+function init() {
+    controls_vr = new OrbitControls(camera, container);
+    controls_vr.target.set(0, 0, 0);
+    controls_vr.update();
+
+    const sessionInit = {
+        requiredFeatures: ['hand-tracking']
+    };
+
+    //document.body.appendChild(VRButton.createButton(renderer, sessionInit));
+
+    // controllers
+
+    controller1 = renderer.xr.getController(0);
+    scene.add(controller1);
+
+    controller2 = renderer.xr.getController(1);
+    scene.add(controller2);
+
+    const controllerModelFactory = new XRControllerModelFactory();
+    const handModelFactory = new XRHandModelFactory();
+
+    // Hand 1
+    controllerGrip1 = renderer.xr.getControllerGrip(0);
+    controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
+    scene.add(controllerGrip1);
+
+    hand1 = renderer.xr.getHand(0);
+    hand1.add(handModelFactory.createHandModel(hand1));
+
+    scene.add(hand1);
+
+    // Hand 2
+    controllerGrip2 = renderer.xr.getControllerGrip(1);
+    controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
+    scene.add(controllerGrip2);
+
+    hand2 = renderer.xr.getHand(1);
+    hand2.add(handModelFactory.createHandModel(hand2));
+    scene.add(hand2);
+
+    const geometry = new THREE.BufferGeometry().setFromPoints( [ new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, - 1 ) ] );
+
+    const line = new THREE.Line( geometry );
+	line.name = 'line';
+	line.scale.z = 5;
+
+    controller1.add( line.clone() );
+	controller2.add( line.clone() );
+
+}
+
 function txtGameOver() {
     // Limpiar el contenido previo del contenedor
     const threeContainer = document.getElementById('three-container');
@@ -1122,8 +1189,10 @@ function agregarBoton(txt = 'JUGAR AHORA', opc = 0) {
 
             iniciarTemporizador(60);
             mostrarAlerta();
+            init();
         } else {
             location.reload();
+            console.log ("entro");
         }
     });
 }
