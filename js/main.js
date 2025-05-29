@@ -96,7 +96,6 @@ let controllerGrip1, controllerGrip2;
 let controls_vr;
 
 
-
 function reproducirMusic() {
     music.volume = 0.3; // Ajusta el volumen antes de reproducirlo
 
@@ -570,6 +569,9 @@ function controls(deltaTime) {
 
     }
 
+    // Movimiento con joystick
+    detectarJoystick(deltaTime);
+
 }
 
 const loader = new GLTFLoader().setPath('./models/gltf/');
@@ -773,6 +775,11 @@ function posArma() {
         armaModel.position.copy(basePos.add(offsetMundial));
     }, 0.05); // 1000 milisegundos
 
+    // Offset para el jugador (más atrás, por ejemplo -1.5 en Z)
+    const playerOffset = new THREE.Vector3(0, -1.5, 0); // hacia atrás
+    const playerOffsetMundial = playerOffset.applyQuaternion(camera.quaternion);
+    player.position.copy(basePos.clone().add(playerOffsetMundial));
+
     // Rotación = igual a la de la cámara
     armaModel.quaternion.copy(camera.quaternion);
 
@@ -804,6 +811,12 @@ function animate() {
     if (vida <= 0 || perdio) {
         renderer.setAnimationLoop(null);
         txtGameOver();
+
+        // Salir de modo VR
+        const session = renderer.xr.getSession();
+        if (session) {
+            session.end();
+        }
 
         clearInterval(intervaBalaslId);
         document.exitPointerLock();
@@ -1057,7 +1070,7 @@ function incrementaBalas() {
 
 const intervaBalaslId = setInterval(incrementaBalas, 1500);
 
-function init() {
+async function init() {
     controls_vr = new OrbitControls(camera, container);
     controls_vr.target.set(0, 0, 0);
     controls_vr.update();
@@ -1068,8 +1081,14 @@ function init() {
 
     //document.body.appendChild(VRButton.createButton(renderer, sessionInit));
 
-    // controllers
+    // Inicia la sesión VR de forma automatica
+    const session = await navigator.xr.requestSession('immersive-vr', {
+        optionalFeatures: ['local-floor', 'bounded-floor']
+    });
 
+    renderer.xr.setSession(session);
+
+    // controllers
     controller1 = renderer.xr.getController(0);
     scene.add(controller1);
 
@@ -1079,33 +1098,55 @@ function init() {
     const controllerModelFactory = new XRControllerModelFactory();
     const handModelFactory = new XRHandModelFactory();
 
+    controller1.addEventListener('selectstart', onSelectStart);
+    controller1.addEventListener('selectend', onSelectEnd);
+
+    controller2.addEventListener('selectstart', onSelectStart);
+    controller2.addEventListener('selectend', onSelectEnd);
+
     // Hand 1
-    controllerGrip1 = renderer.xr.getControllerGrip(0);
+    /*controllerGrip1 = renderer.xr.getControllerGrip(0);
     controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
     scene.add(controllerGrip1);
 
     hand1 = renderer.xr.getHand(0);
     hand1.add(handModelFactory.createHandModel(hand1));
 
-    scene.add(hand1);
+    scene.add(hand1);*/
 
     // Hand 2
-    controllerGrip2 = renderer.xr.getControllerGrip(1);
+    /*controllerGrip2 = renderer.xr.getControllerGrip(1);
     controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
     scene.add(controllerGrip2);
 
     hand2 = renderer.xr.getHand(1);
     hand2.add(handModelFactory.createHandModel(hand2));
-    scene.add(hand2);
+    scene.add(hand2);*/
 
-    const geometry = new THREE.BufferGeometry().setFromPoints( [ new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, - 1 ) ] );
+    const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, - 1)]);
 
-    const line = new THREE.Line( geometry );
-	line.name = 'line';
-	line.scale.z = 5;
+    /*const line = new THREE.Line(geometry);
+    line.name = 'line';
+    line.scale.z = 5;
 
-    controller1.add( line.clone() );
-	controller2.add( line.clone() );
+    controller1.add(line.clone());
+    controller2.add(line.clone());*/
+
+
+
+}
+
+const player = new THREE.Group();
+player.add(camera); // añade la cámara al grupo
+scene.add(player);
+
+function onSelectStart(event) {
+    const controller = event.target;
+
+    throwBall();
+}
+
+function onSelectEnd(event) {
 
 }
 
@@ -1192,7 +1233,7 @@ function agregarBoton(txt = 'JUGAR AHORA', opc = 0) {
             init();
         } else {
             location.reload();
-            console.log ("entro");
+            console.log("entro");
         }
     });
 }
@@ -1375,3 +1416,46 @@ window.onload = () => {
     const boton = document.getElementById('btnPuntaje');
     boton.addEventListener('click', guardarNuevoPuntaje);
 };
+
+
+function detectarJoystick(deltaTime) {
+
+    // gives a bit of air control
+    const speedDelta = deltaTime * (playerOnFloor ? 25 : 8);
+
+    const session = renderer.xr.getSession();
+    if (!session) {
+        console.log("No hay sesión XR activa");
+        return;
+    }
+
+    for (const source of session.inputSources) {
+        //console.log("InputSource:", source);
+
+        if (source.gamepad) {
+            //console.log("Gamepad detectado", source.handedness);
+            const axes = source.gamepad.axes;
+            const x = axes[2];
+            const y = axes[3];
+            //console.log(`Axes: ${axes}`);
+
+            // Mostrar si hay movimiento real
+            if (Math.abs(x) > 0.05 || Math.abs(y) > 0.05) {
+                console.log(`Joystick ${source.handedness} movido: x=${x}, y=${y}`);
+
+                // Movimiento hacia adelante y atrás
+                playerVelocity.add(getForwardVector().multiplyScalar(-y * speedDelta));
+
+                // Movimiento lateral (izquierda/derecha)
+                playerVelocity.add(getSideVector().multiplyScalar(x * speedDelta));
+
+                /*controls_vr.target.set(playerCollider.end);
+                controls_vr.update();*/
+
+            }
+
+        } else {
+            console.log("InputSource sin gamepad:", source);
+        }
+    }
+}
