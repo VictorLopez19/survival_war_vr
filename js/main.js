@@ -19,6 +19,7 @@ scene.fog = new THREE.Fog(0x202020, 0, 100); // Similar para la niebla
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.rotation.order = 'YXZ';
 
+
 const fillLight1 = new THREE.HemisphereLight(0x8dc1de, 0x00668d, 1.5);
 fillLight1.position.set(2, 1, 1);
 scene.add(fillLight1);
@@ -331,6 +332,7 @@ function updatePlayer(deltaTime) {
     posArma();
 
     camera.position.copy(playerCollider.end);
+    player.position.copy(playerCollider.end.clone().add(new THREE.Vector3(0, -1.8, 0)));
 
     directionalLight.position.copy(playerCollider.end).add(new THREE.Vector3(25, 100, 25));
     directionalLight.target.position.copy(playerCollider.end);
@@ -776,9 +778,9 @@ function posArma() {
     }, 0.05); // 1000 milisegundos
 
     // Offset para el jugador (más atrás, por ejemplo -1.5 en Z)
-    const playerOffset = new THREE.Vector3(0, -1.5, 0); // hacia atrás
+    /*const playerOffset = new THREE.Vector3(0, -1.5, 0); // hacia atrás
     const playerOffsetMundial = playerOffset.applyQuaternion(camera.quaternion);
-    player.position.copy(basePos.clone().add(playerOffsetMundial));
+    player.position.copy(basePos.clone().add(playerOffsetMundial));*/
 
     // Rotación = igual a la de la cámara
     armaModel.quaternion.copy(camera.quaternion);
@@ -980,6 +982,7 @@ function animate() {
 
             if (!enemigo.mesh.audioWalk.isPlaying && distancia <= 30) {
                 enemigo.mesh.audioWalk.play();
+                console.log(distancia);
             }
 
         } else {
@@ -1131,8 +1134,6 @@ async function init() {
 
     controller1.add(line.clone());
     controller2.add(line.clone());*/
-
-
 
 }
 
@@ -1441,7 +1442,7 @@ function detectarJoystick(deltaTime) {
 
             // Mostrar si hay movimiento real
             if (Math.abs(x) > 0.05 || Math.abs(y) > 0.05) {
-                console.log(`Joystick ${source.handedness} movido: x=${x}, y=${y}`);
+                //console.log(`Joystick ${source.handedness} movido: x=${x}, y=${y}`);
 
                 // Movimiento hacia adelante y atrás
                 playerVelocity.add(getForwardVector().multiplyScalar(-y * speedDelta));
