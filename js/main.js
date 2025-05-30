@@ -245,9 +245,20 @@ function throwBall() {
     }
 
     const sphere = spheres[sphereIdx];
-    camera.getWorldDirection(playerDirection);
+    // Obtener posición y dirección del controlador
+    const origen = new THREE.Vector3();
+    controller1.getWorldPosition(origen);
 
-    sphere.collider.center.copy(playerCollider.end).addScaledVector(playerDirection, playerCollider.radius * 1.5);
+    const playerDirection = new THREE.Vector3();
+    controller1.getWorldDirection(playerDirection);
+    // Invierte solo si es necesario, prueba primero sin invertir:
+    playerDirection.negate();
+
+    // Posicionar la bola 15 cm delante del controlador
+    const distanciaFrente = 0;
+    const posicionInicial = origen.clone().add(playerDirection.clone().multiplyScalar(distanciaFrente));
+    sphere.collider.center.copy(posicionInicial);
+
     sphere.isOnGround = false;
 
     if (!scene.children.includes(sphere.mesh)) {
@@ -861,12 +872,25 @@ function animate() {
 
         teleportPlayerIfOob();
 
+        // Obtener la dirección del controlador
         const camDir = new THREE.Vector3();
-        camera.getWorldDirection(camDir); // obtiene la dirección hacia la que mira la cámara
-        const miraPos = new THREE.Vector3().copy(camera.position).add(camDir.multiplyScalar(10));
-        miraPos.y -= 0.7;
+        controller1.getWorldDirection(camDir);
+
+        // Obtener la posición global de la cámara
+        const camPos = new THREE.Vector3();
+        player.getWorldPosition(camPos);
+
+        // Calcular posición deseada de la mira, relativa al controlador pero con offset desde la cámara
+        const miraPos = new THREE.Vector3().copy(camDir).multiplyScalar(-10); // alejar desde controlador
+        miraPos.y -= 0.7; // opcional: ajuste vertical
+        miraPos.add(camPos); // sumar la posición de la cámara (eje de referencia central)
+
+        // Posicionar la mira
         mira.position.copy(miraPos);
-        mira.rotation.copy(camera.rotation);
+
+        // Hacer que la mira apunte a la cámara (eje central)
+        mira.lookAt(camPos);
+
     }
 
     // Actualizar la posición de los enemigos
@@ -1043,6 +1067,11 @@ function animate() {
     mixers.forEach(mixer => mixer.update(delta));
 
     renderer.render(scene, camera);
+
+    /*html2canvas(document.getElementById('three-container')).then(function (canvasRender) {
+        ctx.drawImage(canvasRender, 0, 0);
+    });*/
+
 
 }
 
@@ -1460,3 +1489,4 @@ function detectarJoystick(deltaTime) {
         }
     }
 }
+
