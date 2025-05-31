@@ -248,7 +248,7 @@ function throwBall() {
 
     const playerPos = new THREE.Vector3();
     camera.getWorldPosition(playerPos);
-    playerPos.y += 0;  // Subir 0.7 m sobre la cámara
+    playerPos.y += 0.7;  // Subir 0.7 m sobre la cámara
 
     const target_ = new THREE.Vector3();
     mira.getWorldPosition(target_);
