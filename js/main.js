@@ -245,18 +245,17 @@ function throwBall() {
     }
 
     const sphere = spheres[sphereIdx];
-    // Obtener posición y dirección del controlador
-    const origen = new THREE.Vector3();
-    controller1.getWorldPosition(origen);
 
-    const playerDirection = new THREE.Vector3();
-    controller1.getWorldDirection(playerDirection);
-    // Invierte solo si es necesario, prueba primero sin invertir:
-    playerDirection.negate();
+    const playerPos = new THREE.Vector3();
+    camera.getWorldPosition(playerPos);
+    playerPos.y += 0;  // Subir 0.7 m sobre la cámara
 
-    // Posicionar la bola 15 cm delante del controlador
-    const distanciaFrente = 0;
-    const posicionInicial = origen.clone().add(playerDirection.clone().multiplyScalar(distanciaFrente));
+    const target_ = new THREE.Vector3();
+    mira.getWorldPosition(target_);
+
+    const playerDirection = new THREE.Vector3().subVectors(target_, playerPos).normalize();
+
+    const posicionInicial = playerPos.clone();
     sphere.collider.center.copy(posicionInicial);
 
     sphere.isOnGround = false;
@@ -277,7 +276,7 @@ function throwBall() {
     sphere.mesh.rotateY(-Math.PI / 2);  // Por ejemplo, si tu modelo apunta en el eje Y
 
     // throw the ball with more force if we hold the button longer, and if we move forward
-    const impulse = 50 + 30 * (1 - Math.exp((mouseTime - performance.now()) * 0.001));
+    const impulse = 20 + 30 * (1 - Math.exp((mouseTime - performance.now()) * 0.001));
 
     shoot.currentTime = 0;  // Reinicia el sonido si no se está reproduciendo
     shoot.volume = 0.2;
@@ -285,6 +284,8 @@ function throwBall() {
 
     sphere.velocity.copy(playerDirection).multiplyScalar(impulse);
     sphere.velocity.addScaledVector(playerVelocity, 2);
+
+    sphere.startPosition = posicionInicial.clone();
 
     sphereIdx = (sphereIdx + 1) % spheres.length;
 
@@ -343,7 +344,7 @@ function updatePlayer(deltaTime) {
     posArma();
 
     camera.position.copy(playerCollider.end);
-    player.position.copy(playerCollider.end.clone().add(new THREE.Vector3(0, -1.8, 0)));
+    player.position.copy(playerCollider.end.clone().add(new THREE.Vector3(0, -0.5, 0)));
 
     directionalLight.position.copy(playerCollider.end).add(new THREE.Vector3(25, 100, 25));
     directionalLight.target.position.copy(playerCollider.end);
@@ -432,9 +433,9 @@ function enemyCoalition() {
             const dy = esfera.collider.center.y - enemigo.collider.center.y;
             const dz = esfera.collider.center.z - enemigo.collider.center.z;
 
-            const rx = 0.5;  // ancho (X)
-            const ry = 1.9;  // alto (Y), ajustable según tamaño del enemigo
-            const rz = 0.5; // largo (Z)
+            const rx = 0.65;  // ancho (X)
+            const ry = 2.47;  // alto (Y), ajustable según tamaño del enemigo
+            const rz = 0.65; // largo (Z)
 
             const elipsoide = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) + (dz * dz) / (rz * rz);
 
@@ -476,8 +477,10 @@ function updateSpheres(deltaTime) {
 
     spheres.forEach(sphere => {
 
-        sphere.collider.center.addScaledVector(sphere.velocity, deltaTime);
+        if (!sphere.startPosition) return;
 
+        sphere.collider.center.addScaledVector(sphere.velocity, deltaTime);
+        const distanciaRecorrida = sphere.collider.center.distanceTo(sphere.startPosition);
         const result = worldOctree.sphereIntersect(sphere.collider);
 
         if (result) {
@@ -499,9 +502,10 @@ function updateSpheres(deltaTime) {
             }
 
         } else {
+            if (distanciaRecorrida > 30)
+                sphere.velocity.y -= GRAVITY * deltaTime;
 
-            sphere.velocity.y -= GRAVITY * deltaTime;
-
+            sphere.velocity.y -=  deltaTime;
         }
 
         const damping = Math.exp(- 1.5 * deltaTime) - 1;
@@ -705,7 +709,7 @@ function colocarEnemigos(min, size, cantidad) {
             const x = min.x + Math.random() * size.x;
             const z = min.z + Math.random() * size.z;
             clon.position.set(x, 0.1, z);
-            clon.scale.set(1, 1, 1);
+            clon.scale.set(1.3, 1.3, 1.3);
 
             const mixer = new THREE.AnimationMixer(clon);
             const actions = {
@@ -882,7 +886,7 @@ function animate() {
 
         // Calcular posición deseada de la mira, relativa al controlador pero con offset desde la cámara
         const miraPos = new THREE.Vector3().copy(camDir).multiplyScalar(-10); // alejar desde controlador
-        miraPos.y -= 0.7; // opcional: ajuste vertical
+        miraPos.y -= -1.5; // opcional: ajuste vertical
         miraPos.add(camPos); // sumar la posición de la cámara (eje de referencia central)
 
         // Posicionar la mira
