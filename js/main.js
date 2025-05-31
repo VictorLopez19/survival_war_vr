@@ -5,10 +5,10 @@ import { Octree } from 'three/addons/math/Octree.js';
 import { Capsule } from 'three/addons/math/Capsule.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { VRButton } from 'three/addons/webxr/VRButton.js';
 import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
 import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
 import { AudioListener, AudioLoader, PositionalAudio } from 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js';
+import { CSS3DRenderer, CSS3DObject } from 'https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/renderers/CSS3DRenderer.js';
 
 const clock = new THREE.Clock();
 
@@ -41,7 +41,7 @@ scene.add(directionalLight);
 
 const container = document.getElementById('three-container');
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
@@ -52,6 +52,17 @@ renderer.shadowMap.enabled = true;
 renderer.xr.enabled = true;
 
 container.appendChild(renderer.domElement);
+
+
+// Crear el renderer CSS3D para el HTML
+const cssRenderer = new CSS3DRenderer();
+cssRenderer.setSize(window.innerWidth, window.innerHeight);
+cssRenderer.domElement.style.position = 'absolute';
+cssRenderer.domElement.style.top = '0';
+cssRenderer.domElement.style.left = '0';
+cssRenderer.domElement.style.pointerEvents = 'none';
+cssRenderer.domElement.style.setProperty('z-index', '250', 'important');
+container.appendChild(cssRenderer.domElement);
 
 const GRAVITY = 30;
 
@@ -167,6 +178,7 @@ loaderArma.load('./models/gltf/arma.glb', function (gltf) {
     armaTargetPosition.copy(camera.position.clone().add(offsetCentro.applyQuaternion(camera.quaternion)));
 
     scene.add(armaModel);
+
 }, undefined, function (error) {
     console.error(error);
 });
@@ -246,17 +258,17 @@ function throwBall() {
 
     const sphere = spheres[sphereIdx];
 
-    const playerPos = new THREE.Vector3();
-    camera.getWorldPosition(playerPos);
-    playerPos.y += 0.7;  // Subir 0.7 m sobre la cámara
+    const punta = armaModel.getObjectByName('puntaArma');
+    const puntaPos = new THREE.Vector3();
+    punta.getWorldPosition(puntaPos); 
 
     const target_ = new THREE.Vector3();
     mira.getWorldPosition(target_);
 
-    const playerDirection = new THREE.Vector3().subVectors(target_, playerPos).normalize();
+    const playerDirection = new THREE.Vector3().subVectors(target_, puntaPos).normalize();
 
-    const posicionInicial = playerPos.clone();
-    sphere.collider.center.copy(posicionInicial);
+    const posicionInicial = puntaPos.clone(); // Esto es lo que usarás como punto inicial del disparo
+    sphere.collider.center.copy(posicionInicial); 
 
     sphere.isOnGround = false;
 
@@ -276,7 +288,7 @@ function throwBall() {
     sphere.mesh.rotateY(-Math.PI / 2);  // Por ejemplo, si tu modelo apunta en el eje Y
 
     // throw the ball with more force if we hold the button longer, and if we move forward
-    const impulse = 20 + 30 * (1 - Math.exp((mouseTime - performance.now()) * 0.001));
+    const impulse = 80 + 30 * (1 - Math.exp((mouseTime - performance.now()) * 0.001));
 
     shoot.currentTime = 0;  // Reinicia el sonido si no se está reproduciendo
     shoot.volume = 0.2;
@@ -502,10 +514,10 @@ function updateSpheres(deltaTime) {
             }
 
         } else {
-            if (distanciaRecorrida > 30)
-                sphere.velocity.y -= GRAVITY * deltaTime;
 
-            sphere.velocity.y -=  deltaTime;
+            sphere.velocity.y -= GRAVITY * deltaTime;
+
+            //sphere.velocity.y -= deltaTime;
         }
 
         const damping = Math.exp(- 1.5 * deltaTime) - 1;
@@ -783,8 +795,8 @@ function posArma() {
     const basePos = playerCollider.end.clone();
 
     // Offset relativo a la cámara
-    const offset = new THREE.Vector3(0.2, -0.3, -0.7); // abajo, derecha y al frente
-    const offsetMundial = offset.applyQuaternion(camera.quaternion);
+    const offset = new THREE.Vector3(0.7, 0.6, -0.7); // abajo, derecha y al frente
+    const offsetMundial = offset.applyQuaternion(player.quaternion);
 
     // Posición final sin interpolación
     // Espera 1000 milisegundos (1 segundo) antes de actualizar la posición
@@ -792,17 +804,16 @@ function posArma() {
         armaModel.position.copy(basePos.add(offsetMundial));
     }, 0.05); // 1000 milisegundos
 
-    // Offset para el jugador (más atrás, por ejemplo -1.5 en Z)
-    /*const playerOffset = new THREE.Vector3(0, -1.5, 0); // hacia atrás
-    const playerOffsetMundial = playerOffset.applyQuaternion(camera.quaternion);
-    player.position.copy(basePos.clone().add(playerOffsetMundial));*/
-
     // Rotación = igual a la de la cámara
-    armaModel.quaternion.copy(camera.quaternion);
+    //armaModel.quaternion.copy(mira.quaternion);
+
+    // Hacer que la punta del arma mire hacia la mira
+    armaModel.lookAt(mira.getWorldPosition(new THREE.Vector3()));
 
     // Ajuste diagonal
-    armaModel.rotateX(0.40);
-    armaModel.rotateY(-1.1);
+    armaModel.rotateX(0.2); // menor ajuste, prueba con valores pequeños
+    armaModel.rotateY(Math.PI / 2);
+    armaModel.rotateZ(-Math.PI / 8);
 }
 
 function crearCruz() {
@@ -824,6 +835,14 @@ const mira = crearCruz();
 function animate() {
     const delta = clock.getDelta();
     const deltaTime = Math.min(0.05, delta) / STEPS_PER_FRAME;
+
+    // Suponiendo que tu diseño HTML está en un div con id="miDiseño"
+    const miDiseño = document.getElementById("modalAlerta");
+
+    // Crear un objeto CSS3D con el elemento HTML
+    const cssObject = new CSS3DObject(miDiseño);
+    cssObject.position.set(0, 1, 1.7);
+    scene.add(cssObject);
 
     if (vida <= 0 || perdio) {
         renderer.setAnimationLoop(null);
@@ -886,7 +905,7 @@ function animate() {
 
         // Calcular posición deseada de la mira, relativa al controlador pero con offset desde la cámara
         const miraPos = new THREE.Vector3().copy(camDir).multiplyScalar(-10); // alejar desde controlador
-        miraPos.y -= -1.5; // opcional: ajuste vertical
+        miraPos.y -= -1.7; // opcional: ajuste vertical
         miraPos.add(camPos); // sumar la posición de la cámara (eje de referencia central)
 
         // Posicionar la mira
@@ -1071,11 +1090,7 @@ function animate() {
     mixers.forEach(mixer => mixer.update(delta));
 
     renderer.render(scene, camera);
-
-    /*html2canvas(document.getElementById('three-container')).then(function (canvasRender) {
-        ctx.drawImage(canvasRender, 0, 0);
-    });*/
-
+    cssRenderer.render(scene, camera);
 
 }
 
@@ -1449,6 +1464,7 @@ window.onload = () => {
 
     const boton = document.getElementById('btnPuntaje');
     boton.addEventListener('click', guardarNuevoPuntaje);
+
 };
 
 
@@ -1494,3 +1510,22 @@ function detectarJoystick(deltaTime) {
     }
 }
 
+
+/* ETIQUETAS DE INFORMACION */
+
+let modalAlerta;
+let ctx;
+let canvas;
+
+window.onload = function () {
+    modalAlerta = document.getElementById("modalAlerta");
+
+    if (typeof renderer !== 'undefined' && renderer.domElement) {
+        canvas = renderer.domElement;
+        ctx = canvas.getContext("2d");
+
+        console.log("Canvas agregado correctamente al cargar la página");
+    } else {
+        console.warn("renderer no está disponible en window.onload");
+    }
+};
