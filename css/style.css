@@ -226,6 +226,7 @@ footer {
 
     width: auto !important;
     height: auto !important;
+    background-color: transparent !important;
 }
 
 .scoreboard div {

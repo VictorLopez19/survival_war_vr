@@ -9,6 +9,7 @@ import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFa
 import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
 import { AudioListener, AudioLoader, PositionalAudio } from 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js';
 import { CSS3DRenderer, CSS3DObject } from 'https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/renderers/CSS3DRenderer.js';
+import html2canvas from 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/+esm';
 
 const clock = new THREE.Clock();
 
@@ -60,8 +61,10 @@ cssRenderer.setSize(window.innerWidth, window.innerHeight);
 cssRenderer.domElement.style.position = 'absolute';
 cssRenderer.domElement.style.top = '0';
 cssRenderer.domElement.style.left = '0';
+cssRenderer.domElement.style.setProperty('width', '100%', 'important');
+cssRenderer.domElement.style.setProperty('height', '100%', 'important');
 cssRenderer.domElement.style.pointerEvents = 'none';
-cssRenderer.domElement.style.setProperty('z-index', '250', 'important');
+cssRenderer.domElement.style.setProperty('z-index', '1000', 'important');
 container.appendChild(cssRenderer.domElement);
 
 const GRAVITY = 30;
@@ -88,7 +91,7 @@ let puntaje = 0;
 let vida = 100;
 
 let puntajeNivel = 0;
-let noEnemigosNivel = 15;
+let noEnemigosNivel = 5;
 
 let perdio = false;
 let noBalas = 15;
@@ -260,7 +263,7 @@ function throwBall() {
 
     const punta = armaModel.getObjectByName('puntaArma');
     const puntaPos = new THREE.Vector3();
-    punta.getWorldPosition(puntaPos); 
+    punta.getWorldPosition(puntaPos);
 
     const target_ = new THREE.Vector3();
     mira.getWorldPosition(target_);
@@ -268,7 +271,7 @@ function throwBall() {
     const playerDirection = new THREE.Vector3().subVectors(target_, puntaPos).normalize();
 
     const posicionInicial = puntaPos.clone(); // Esto es lo que usarás como punto inicial del disparo
-    sphere.collider.center.copy(posicionInicial); 
+    sphere.collider.center.copy(posicionInicial);
 
     sphere.isOnGround = false;
 
@@ -836,14 +839,6 @@ function animate() {
     const delta = clock.getDelta();
     const deltaTime = Math.min(0.05, delta) / STEPS_PER_FRAME;
 
-    // Suponiendo que tu diseño HTML está en un div con id="miDiseño"
-    const miDiseño = document.getElementById("modalAlerta");
-
-    // Crear un objeto CSS3D con el elemento HTML
-    const cssObject = new CSS3DObject(miDiseño);
-    cssObject.position.set(0, 1, 1.7);
-    scene.add(cssObject);
-
     if (vida <= 0 || perdio) {
         renderer.setAnimationLoop(null);
         txtGameOver();
@@ -980,6 +975,9 @@ function animate() {
 
                 document.getElementById('puntObje').innerHTML = puntajeNivel;
                 document.getElementById('puntTotal').innerHTML = puntaje;
+
+                marcadorUI.userData.izq.userData.actualizarTexto(puntajeNivel);
+                marcadorUI.userData.der.userData.actualizarTexto(puntaje);
                 //console.log(puntaje)
             }
 
@@ -1106,6 +1104,7 @@ function incrementaNivel() {
 
     if (document.getElementById('puntObje')) {
         document.getElementById('puntObje').innerHTML = puntajeNivel;
+        marcadorUI.userData.izq.userData.actualizarTexto(puntajeNivel);
     }
 }
 
@@ -1307,6 +1306,7 @@ function iniciarTemporizador(duracionSegundos) {
 
         if (timeElement) {
             timeElement.textContent = `${minutos}:${segundos}`;
+            marcadorUI.userData.centro.userData.actualizarTexto(`${minutos}:${segundos}`);
         }
 
         // Cuando se cumple exactamente un ciclo completo
@@ -1330,6 +1330,8 @@ function actualizarBarraMunicion() {
     const barraMunicion = document.getElementById('progressBarBullets');
     barraMunicion.style.setProperty('width', porcentajeMunicion + '%', 'important');
 
+    barraMunicion_vr.setValor(porcentajeMunicion);
+
     // Actualizar el texto que muestra la munición
     document.getElementById('noBalas').innerHTML = `Munición ${noBalas}/15`;
 }
@@ -1339,6 +1341,8 @@ function actualizarBarraVida() {
     const barraVida = document.getElementById('progressBarVida');
     barraVida.style.setProperty('width', porcentajeVida + '%', 'important');
 
+    barraFuerza_vr.setValor(porcentajeVida);
+
     // Actualizar el texto que muestra la vida
     document.getElementById('fuerza').innerHTML = `Fuerza ${vida}/100`;
 }
@@ -1347,6 +1351,8 @@ function mostrarAlerta() {
     const alerta = document.getElementById('modalAlerta');
     document.getElementById('txtDescript').innerHTML = 'Debes de terminar con ' + noEnemigosNivel + ' zombies';
     alerta.classList.add('mostrar'); // Muestra la alerta añadiendo la clase
+
+    crearAlertaMision('Debes de terminar con ' + noEnemigosNivel + ' zombies')
 
     setTimeout(() => {
         alerta.classList.remove('mostrar'); // La oculta después de 3 segundos
@@ -1513,19 +1519,201 @@ function detectarJoystick(deltaTime) {
 
 /* ETIQUETAS DE INFORMACION */
 
-let modalAlerta;
-let ctx;
-let canvas;
+// Función para crear solo texto blanco (sin fondo)
+function crearTextoPlano(texto, ancho = 1.2, alto = 0.6) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
 
-window.onload = function () {
-    modalAlerta = document.getElementById("modalAlerta");
-
-    if (typeof renderer !== 'undefined' && renderer.domElement) {
-        canvas = renderer.domElement;
-        ctx = canvas.getContext("2d");
-
-        console.log("Canvas agregado correctamente al cargar la página");
-    } else {
-        console.warn("renderer no está disponible en window.onload");
+    function dibujarTexto(t) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = 'bold 40px Poppins';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(t, canvas.width / 2, canvas.height / 2);
     }
-};
+
+    dibujarTexto(texto);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(ancho, alto), material);
+
+    // Permitir actualización del texto
+    mesh.userData.dibujarTexto = dibujarTexto;
+    mesh.userData.texture = texture;
+    mesh.userData.actualizarTexto = function (nuevoTexto) {
+        dibujarTexto(nuevoTexto);
+        texture.needsUpdate = true;
+    };
+
+    return mesh;
+}
+
+// Función para crear un rectángulo con texto
+function crearRectanguloConTexto(texto, colorFondo, colorBordeIzq, colorBordeDer) {
+    const group = new THREE.Group();
+
+    const anchoTotal = 1.5;
+    const alto = 0.5;
+    const anchoBorde = 0.05;
+
+    // Fondo
+    const fondo = new THREE.Mesh(
+        new THREE.PlaneGeometry(anchoTotal, alto),
+        new THREE.MeshBasicMaterial({ color: colorFondo, transparent: true, opacity: 0.5 })
+    );
+    group.add(fondo);
+
+    // Bordes
+    const bordeIzq = new THREE.Mesh(
+        new THREE.PlaneGeometry(anchoBorde, alto),
+        new THREE.MeshBasicMaterial({ color: colorBordeIzq })
+    );
+    bordeIzq.position.x = -anchoTotal / 2 + anchoBorde / 2;
+    group.add(bordeIzq);
+
+    const bordeDer = new THREE.Mesh(
+        new THREE.PlaneGeometry(anchoBorde, alto),
+        new THREE.MeshBasicMaterial({ color: colorBordeDer })
+    );
+    bordeDer.position.x = anchoTotal / 2 - anchoBorde / 2;
+    group.add(bordeDer);
+
+    // Texto
+    const textoMesh = crearTextoPlano(texto, anchoTotal * 0.9, alto);
+    group.add(textoMesh);
+    group.userData.texto = textoMesh;
+
+    return group;
+}
+
+// Crear el marcador completo
+function crearMarcadorCompleto(textoIzq, textoCentro, textoDer) {
+    const marcador = new THREE.Group();
+
+    const izq = crearRectanguloConTexto(textoIzq, '#3396ff', '#3396ff', '#3396ff');
+    const centro = crearTextoPlano(textoCentro); // sin fondo
+    const der = crearRectanguloConTexto(textoDer, '#fe1c1c', '#bd0505', '#fe1c1c');
+
+    izq.position.set(-1.6, 0, 0);
+    centro.position.set(0, 0, 0);
+    der.position.set(1.6, 0, 0);
+
+    marcador.add(izq);
+    marcador.add(centro);
+    marcador.add(der);
+
+    // Guardar referencias para actualización
+    marcador.userData.izq = izq.userData.texto;
+    marcador.userData.centro = centro;
+    marcador.userData.der = der.userData.texto;
+
+    return marcador;
+}
+
+// Crear y añadir el marcador a la escena
+const marcadorUI = crearMarcadorCompleto("0", "01:00", "0");
+marcadorUI.position.set(0, 3.7, -4.5);
+camera.add(marcadorUI);
+
+
+
+/* MISION */
+
+function crearAlertaMision(texto, duracionSegundos = 3) {
+    // Crear un canvas estilizado
+    const canvas = document.createElement('canvas');
+    canvas.width = 600;
+    canvas.height = 120;
+    const ctx = canvas.getContext('2d');
+
+    // Fondo con bordes redondeados
+    const radius = 20;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(radius, 0);
+    ctx.lineTo(canvas.width - radius, 0);
+    ctx.quadraticCurveTo(canvas.width, 0, canvas.width, radius);
+    ctx.lineTo(canvas.width, canvas.height - radius);
+    ctx.quadraticCurveTo(canvas.width, canvas.height, canvas.width - radius, canvas.height);
+    ctx.lineTo(radius, canvas.height);
+    ctx.quadraticCurveTo(0, canvas.height, 0, canvas.height - radius);
+    ctx.lineTo(0, radius);
+    ctx.quadraticCurveTo(0, 0, radius, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Texto centrado
+    ctx.font = '26px Poppins';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(texto, canvas.width / 2, canvas.height / 2);
+
+    // Crear textura y mesh
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+    const geometry = new THREE.PlaneGeometry(3, 0.55); // Tamaño visual del panel
+    const alertaMesh = new THREE.Mesh(geometry, material);
+
+    // Mostrar frente a la cámara
+    camera.add(alertaMesh);
+    alertaMesh.position.set(0, 1.5, -3); // centrado y arriba del campo visual
+
+    // Eliminar luego de X segundos
+    setTimeout(() => {
+        camera.remove(alertaMesh);
+        alertaMesh.geometry.dispose();
+        alertaMesh.material.map.dispose();
+        alertaMesh.material.dispose();
+    }, duracionSegundos * 1000);
+}
+
+
+/* BARRA DE PROGRESO */
+function crearBarraProgreso(colorFondo = '#222', colorRelleno = '#00ff00') {
+    const grupo = new THREE.Group();
+
+    // Fondo (marco gris)
+    const fondoGeo = new THREE.PlaneGeometry(2, 0.08);
+    const fondoMat = new THREE.MeshBasicMaterial({ color: colorFondo });
+    const fondo = new THREE.Mesh(fondoGeo, fondoMat);
+    grupo.add(fondo);
+
+    // Relleno (barra verde)
+    const rellenoGeo = new THREE.PlaneGeometry(1.96, 0.038);
+    const rellenoMat = new THREE.MeshBasicMaterial({ color: colorRelleno });
+    const relleno = new THREE.Mesh(rellenoGeo, rellenoMat);
+    relleno.position.set(-0.98, 0, 0); // delante y a la izquierda
+    relleno.scale.set(0, 1, 1); // inicio vacío
+    grupo.add(relleno);
+
+    // Posiciona frente a la cámara (como HUD)
+    camera.add(grupo);
+    grupo.position.set(0, -0.5, -2); // un poco abajo
+
+    // Devuelve el grupo y la barra para que la puedas actualizar
+    return {
+        grupo,
+        fondo,
+        relleno,
+        setValor: (valor) => {
+            const clamped = Math.max(0, Math.min(1, valor / 100)); // asegura un rango de 0 a 1
+            relleno.scale.x = clamped;
+            relleno.position.x = -0.95 + clamped * 0.95; // ajustar alineación izquierda
+        }
+    };
+}
+
+const barraMunicion_vr = crearBarraProgreso('#333', '#ffc107');
+barraMunicion_vr.grupo.position.set(0, 1.35, -1.9);
+
+const barraFuerza_vr = crearBarraProgreso('#333', '#a80000');
+barraFuerza_vr.grupo.position.set(0, 1.25, -1.9);
+barraFuerza_vr.setValor(100);
