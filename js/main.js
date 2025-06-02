@@ -614,7 +614,6 @@ let modeloBase = null;
 let modeloAnimations = [];
 
 const listener = new THREE.AudioListener();
-camera.add(listener);
 const audioLoader = new THREE.AudioLoader();
 
 // Cargar mapa
@@ -652,7 +651,7 @@ loader.load('Mapa_op.glb', (gltf) => {
         modeloBase = gltfEnemy.scene;
         modeloAnimations = gltfEnemy.animations;
         // Ya se puede colocar porque el mapa existe
-        colocarEnemigos(min, size, 100);
+        colocarEnemigos(min, size, 80);
 
     });
 
@@ -892,7 +891,7 @@ function animate() {
 
         // Obtener la dirección del controlador
         const camDir = new THREE.Vector3();
-        controller1.getWorldDirection(camDir);
+        controller2.getWorldDirection(camDir);
 
         // Obtener la posición global de la cámara
         const camPos = new THREE.Vector3();
@@ -912,14 +911,19 @@ function animate() {
     }
 
     // Actualizar la posición de los enemigos
-    const velocidadZombie = 0.01;
+    const velocidadZombie = 0.02;
     isAttack = false;
 
     enemigos.forEach((enemigo) => {
         const direccion = new THREE.Vector3();
-        direccion.subVectors(playerCollider.end, enemigo.mesh.position);  // Direccion hacia el jugador
+        direccion.subVectors(armaModel.position, enemigo.mesh.position);  // Direccion hacia el jugador
         const distancia = direccion.length();
         const acciones = enemigo.mesh.userData.actions;
+
+        if (enemigo.mesh.audioWalk.isPlaying || enemigo.mesh.audioAttack.isPlaying || enemigo.mesh.audioDead.isPlaying) {
+            console.log("yo")
+        }
+        
 
         // Si el enemigo choca con una pared se genera en una nueva posición
         if (enemyCollisions(enemigo, deltaTime)) {
@@ -994,13 +998,13 @@ function animate() {
             return;
         }
 
-        if (distancia > 30 && !enemigo.dead) {
+        if (distancia > 20  && !enemigo.dead) {
             if (enemigo.mesh.audioWalk.isPlaying) {
                 enemigo.mesh.audioWalk.stop();
             }
         }
 
-        if (distancia > 2 && !enemigo.dead) {
+        if (distancia > 3 && !enemigo.dead) {
             direccion.normalize();  // Normalizamos la dirección para no movernos más rápido en diagonal
 
             // Actualizar la posición del enemigo
@@ -1023,11 +1027,14 @@ function animate() {
                 acciones.Walk.setLoop(THREE.LoopRepeat, Infinity);  // Repetir indefinidamente
                 acciones.Walk.timeScale = 2;
                 acciones.Walk.play();
+
+                if (enemigo.mesh.audioAttack.isPlaying) {
+                    enemigo.mesh.audioAttack.stop();
+                }
             }
 
-            if (!enemigo.mesh.audioWalk.isPlaying && distancia <= 30) {
+            if (!enemigo.mesh.audioWalk.isPlaying && distancia <= 20) {
                 enemigo.mesh.audioWalk.play();
-                console.log(distancia);
             }
 
         } else {
@@ -1088,8 +1095,6 @@ function animate() {
     mixers.forEach(mixer => mixer.update(delta));
 
     renderer.render(scene, camera);
-    cssRenderer.render(scene, camera);
-
 }
 
 // Función que se ejecuta cada minuto
@@ -1175,18 +1180,12 @@ async function init() {
 
     const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, - 1)]);
 
-    /*const line = new THREE.Line(geometry);
-    line.name = 'line';
-    line.scale.z = 5;
-
-    controller1.add(line.clone());
-    controller2.add(line.clone());*/
-
 }
 
 const player = new THREE.Group();
 player.add(camera); // añade la cámara al grupo
 scene.add(player);
+player.add(listener);
 
 function onSelectStart(event) {
     const controller = event.target;
@@ -1276,7 +1275,15 @@ function agregarBoton(txt = 'JUGAR AHORA', opc = 0) {
             document.body.requestPointerLock();
             container.addEventListener('mousedown', handleMouseDown);
 
-            iniciarTemporizador(60);
+            iniciarTemporizador(texto => {
+                if (marcadorUI?.userData?.centro?.userData?.actualizarTexto) {
+                    marcadorUI.userData.centro.userData.actualizarTexto(texto);
+                    marcadorUI.userData.centro.material.map.needsUpdate = true;
+                    marcadorUI.userData.centro.material.needsUpdate = true;
+                    marcadorUI.userData.centro.frustumCulled = false;
+                }
+            });
+
             mostrarAlerta();
             init();
         } else {
@@ -1291,22 +1298,30 @@ function handleMouseDown() {
     mouseTime = performance.now();
 }
 
-function iniciarTemporizador(duracionSegundos) {
+function iniciarTemporizador(callbackActualizarTexto) {
     const timeElement = document.getElementById('time');
     let tiempoInicio = Date.now();
+    let duracionSegundos = 60;
 
     function actualizar() {
         const tiempoActual = Date.now();
         const tiempoTranscurrido = tiempoActual - tiempoInicio;
-        const tiempoRestante = duracionSegundos * 1000 - (tiempoTranscurrido % (duracionSegundos * 1000));
+        const tiempoRestante = Math.max(0, duracionSegundos * 1000 - tiempoTranscurrido);
 
         const segundosRestantes = Math.floor(tiempoRestante / 1000);
         const minutos = Math.floor(segundosRestantes / 60).toString().padStart(2, '0');
         const segundos = (segundosRestantes % 60).toString().padStart(2, '0');
 
+        const texto = `${minutos}:${segundos}`;
+
+        // Actualiza el DOM si existe
         if (timeElement) {
-            timeElement.textContent = `${minutos}:${segundos}`;
-            marcadorUI.userData.centro.userData.actualizarTexto(`${minutos}:${segundos}`);
+            timeElement.textContent = texto;
+        }
+
+        // Si hay un callback externo, lo llama con el texto
+        if (typeof callbackActualizarTexto === 'function') {
+            callbackActualizarTexto(texto);
         }
 
         // Cuando se cumple exactamente un ciclo completo
@@ -1324,6 +1339,7 @@ function iniciarTemporizador(duracionSegundos) {
 
     actualizar();
 }
+
 
 function actualizarBarraMunicion() {
     const porcentajeMunicion = (noBalas / 15) * 100;
@@ -1538,15 +1554,28 @@ function crearTextoPlano(texto, ancho = 1.2, alto = 0.6) {
     dibujarTexto(texto);
 
     const texture = new THREE.CanvasTexture(canvas);
+    texture.dynamic = true;
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.generateMipmaps = false;
+
     const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+    material.map = texture;
+    material.needsUpdate = true;
+
+
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(ancho, alto), material);
+    mesh.frustumCulled = false;
 
     // Permitir actualización del texto
     mesh.userData.dibujarTexto = dibujarTexto;
     mesh.userData.texture = texture;
     mesh.userData.actualizarTexto = function (nuevoTexto) {
-        dibujarTexto(nuevoTexto);
-        texture.needsUpdate = true;
+        if (mesh.userData.textoActual !== nuevoTexto) {
+            mesh.userData.dibujarTexto(nuevoTexto);
+            mesh.userData.texture.needsUpdate = true;
+            mesh.userData.textoActual = nuevoTexto;
+        }
     };
 
     return mesh;
@@ -1616,14 +1645,14 @@ function crearMarcadorCompleto(textoIzq, textoCentro, textoDer) {
 
 // Crear y añadir el marcador a la escena
 const marcadorUI = crearMarcadorCompleto("0", "01:00", "0");
-marcadorUI.position.set(0, 3.7, -4.5);
+marcadorUI.position.set(0, 2, -8.5);
 camera.add(marcadorUI);
 
 
 
 /* MISION */
 
-function crearAlertaMision(texto, duracionSegundos = 3) {
+function crearAlertaMision(texto, duracionSegundos = 10) {
     // Crear un canvas estilizado
     const canvas = document.createElement('canvas');
     canvas.width = 600;
@@ -1664,7 +1693,7 @@ function crearAlertaMision(texto, duracionSegundos = 3) {
 
     // Mostrar frente a la cámara
     camera.add(alertaMesh);
-    alertaMesh.position.set(0, 1.5, -3); // centrado y arriba del campo visual
+    alertaMesh.position.set(0, 0, -8); // centrado y arriba del campo visual
 
     // Eliminar luego de X segundos
     setTimeout(() => {
@@ -1681,16 +1710,16 @@ function crearBarraProgreso(colorFondo = '#222', colorRelleno = '#00ff00') {
     const grupo = new THREE.Group();
 
     // Fondo (marco gris)
-    const fondoGeo = new THREE.PlaneGeometry(2, 0.08);
+    const fondoGeo = new THREE.PlaneGeometry(5, 0.16);
     const fondoMat = new THREE.MeshBasicMaterial({ color: colorFondo });
     const fondo = new THREE.Mesh(fondoGeo, fondoMat);
     grupo.add(fondo);
 
     // Relleno (barra verde)
-    const rellenoGeo = new THREE.PlaneGeometry(1.96, 0.038);
+    const rellenoGeo = new THREE.PlaneGeometry(4.96, 0.08);
     const rellenoMat = new THREE.MeshBasicMaterial({ color: colorRelleno });
     const relleno = new THREE.Mesh(rellenoGeo, rellenoMat);
-    relleno.position.set(-0.98, 0, 0); // delante y a la izquierda
+    relleno.position.set(-2.48, 0, 0); // delante y a la izquierda
     relleno.scale.set(0, 1, 1); // inicio vacío
     grupo.add(relleno);
 
@@ -1706,14 +1735,14 @@ function crearBarraProgreso(colorFondo = '#222', colorRelleno = '#00ff00') {
         setValor: (valor) => {
             const clamped = Math.max(0, Math.min(1, valor / 100)); // asegura un rango de 0 a 1
             relleno.scale.x = clamped;
-            relleno.position.x = -0.95 + clamped * 0.95; // ajustar alineación izquierda
+            relleno.position.x = -2.48 + clamped * 2.48; // ajustar alineación izquierda
         }
     };
 }
 
 const barraMunicion_vr = crearBarraProgreso('#333', '#ffc107');
-barraMunicion_vr.grupo.position.set(0, 1.35, -1.9);
+barraMunicion_vr.grupo.position.set(0, 1, -9);
 
 const barraFuerza_vr = crearBarraProgreso('#333', '#a80000');
-barraFuerza_vr.grupo.position.set(0, 1.25, -1.9);
+barraFuerza_vr.grupo.position.set(0, 0.7, -9);
 barraFuerza_vr.setValor(100);
