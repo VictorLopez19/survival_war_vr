@@ -91,7 +91,7 @@ let puntaje = 0;
 let vida = 100;
 
 let puntajeNivel = 0;
-let noEnemigosNivel = 5;
+let noEnemigosNivel = 10;
 
 let perdio = false;
 let noBalas = 15;
@@ -107,6 +107,7 @@ let music = new Audio('./assets/sounds/music.mp3');
 let hand1, hand2;
 let controller1, controller2;
 let controllerGrip1, controllerGrip2;
+let fondoVisible = true;
 
 let controls_vr;
 
@@ -651,7 +652,7 @@ loader.load('Mapa_op.glb', (gltf) => {
         modeloBase = gltfEnemy.scene;
         modeloAnimations = gltfEnemy.animations;
         // Ya se puede colocar porque el mapa existe
-        colocarEnemigos(min, size, 80);
+        colocarEnemigos(min, size, 100);
 
     });
 
@@ -920,11 +921,6 @@ function animate() {
         const distancia = direccion.length();
         const acciones = enemigo.mesh.userData.actions;
 
-        if (enemigo.mesh.audioWalk.isPlaying || enemigo.mesh.audioAttack.isPlaying || enemigo.mesh.audioDead.isPlaying) {
-            console.log("yo")
-        }
-        
-
         // Si el enemigo choca con una pared se genera en una nueva posición
         if (enemyCollisions(enemigo, deltaTime)) {
             nuevaPosicion(enemigo.mesh)
@@ -998,7 +994,7 @@ function animate() {
             return;
         }
 
-        if (distancia > 20  && !enemigo.dead) {
+        if (distancia > 20 && !enemigo.dead) {
             if (enemigo.mesh.audioWalk.isPlaying) {
                 enemigo.mesh.audioWalk.stop();
             }
@@ -1086,9 +1082,35 @@ function animate() {
     });
 
     if (isAttack) {
-        document.getElementById('three-container').classList.add('show-border');
+        if (!fondoVisible) {
+            fondoVisible = true;
+            document.getElementById('three-container').classList.add('show-border');
+
+            fondo.material.opacity = 0;  // Empieza invisible
+            camera.add(fondo);           // Lo agregas al padre (cámara)
+
+            gsap.to(fondo.material, {
+                opacity: 1,
+                duration: 0.5,
+                ease: 'power2.inOut'
+            });
+        }
     } else {
-        document.getElementById('three-container').classList.remove('show-border');
+        if (fondoVisible) {
+            fondoVisible = false;
+            document.getElementById('three-container').classList.remove('show-border');
+
+            gsap.to(fondo.material, {
+                opacity: 0,
+                duration: 1.5,
+                ease: 'power2.inOut',
+                onComplete: () => {
+                    if (fondo.parent) {
+                        fondo.parent.remove(fondo);
+                    }
+                }
+            });
+        }
     }
 
     // Actualizar animaciones
@@ -1652,7 +1674,7 @@ camera.add(marcadorUI);
 
 /* MISION */
 
-function crearAlertaMision(texto, duracionSegundos = 10) {
+function crearAlertaMision(texto, duracionSegundos = 4) {
     // Crear un canvas estilizado
     const canvas = document.createElement('canvas');
     canvas.width = 600;
@@ -1746,3 +1768,60 @@ barraMunicion_vr.grupo.position.set(0, 1, -9);
 const barraFuerza_vr = crearBarraProgreso('#333', '#a80000');
 barraFuerza_vr.grupo.position.set(0, 0.7, -9);
 barraFuerza_vr.setValor(100);
+
+/* ATAQUE */
+function crearFondoRadialPantalla(renderer, camera) {
+    const aspecto = window.innerWidth / window.innerHeight;
+    const height = 2;
+    const width = height * aspecto;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 1024;
+    const ctx = canvas.getContext('2d');
+
+    // Gradiente: pequeño centro transparente, resto cubierto
+    const gradiente = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, canvas.width * 0.05,  // Pequeño centro transparente
+        canvas.width / 2, canvas.height / 2, canvas.width * 0.9    // Exterior cubre casi toda la pantalla
+    );
+
+    gradiente.addColorStop(0.0, 'rgba(255, 0, 0, 0)');     // Centro transparente
+    gradiente.addColorStop(0.1, 'rgba(255, 0, 0, 0.3)');
+    gradiente.addColorStop(0.4, 'rgba(255, 0, 0, 0.6)');
+    gradiente.addColorStop(1.0, 'rgba(144, 0, 0, 1)');     // Rojo oscuro en los bordes
+
+    ctx.fillStyle = gradiente;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const texture = new THREE.CanvasTexture(canvas);
+
+    const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        opacity: 0,
+        depthTest: false
+    });
+
+    const plano = new THREE.Mesh(new THREE.PlaneGeometry(width, height), material);
+    plano.renderOrder = 999;
+    plano.material.depthWrite = false;
+
+    // Agregar al HUD de VR
+    const cam = renderer.xr.getCamera(camera);
+    cam.add(plano);
+    plano.position.set(0, 0, -0.01);
+
+    // Mostrar efecto con GSAP
+    gsap.to(material, {
+        opacity: 0,
+        duration: 1,
+        ease: 'power2.inOut'
+    });
+
+    return plano;
+}
+
+const fondo = crearFondoRadialPantalla(renderer);
+camera.add(fondo);
+fondo.position.set(0, 0, -0.5);
