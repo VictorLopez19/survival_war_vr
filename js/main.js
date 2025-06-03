@@ -1324,6 +1324,7 @@ function iniciarTemporizador(callbackActualizarTexto) {
     const timeElement = document.getElementById('time');
     let tiempoInicio = Date.now();
     let duracionSegundos = 60;
+    let reiniciando = false;
 
     function actualizar() {
         const tiempoActual = Date.now();
@@ -1336,24 +1337,30 @@ function iniciarTemporizador(callbackActualizarTexto) {
 
         const texto = `${minutos}:${segundos}`;
 
-        // Actualiza el DOM si existe
         if (timeElement) {
             timeElement.textContent = texto;
         }
 
-        // Si hay un callback externo, lo llama con el texto
         if (typeof callbackActualizarTexto === 'function') {
             callbackActualizarTexto(texto);
         }
 
-        // Cuando se cumple exactamente un ciclo completo
-        if (tiempoTranscurrido >= duracionSegundos * 1000) {
+        if (tiempoRestante <= 0 && !reiniciando) {
+            reiniciando = true;
             incrementaNivel();
             if (vida > 0 && !perdio) {
                 mostrarAlerta();
             }
 
-            tiempoInicio = Date.now(); // Reinicia el tiempo
+            // Espera un frame para asegurar que se procese el cambio
+            setTimeout(() => {
+                tiempoInicio = Date.now();
+                reiniciando = false;
+
+                if (typeof callbackActualizarTexto === 'function') {
+                    callbackActualizarTexto("01:00"); // Forzar texto visual al reinicio
+                }
+            }, 100); // 100 ms para dar margen a los visores VR
         }
 
         requestAnimationFrame(actualizar);
@@ -1361,7 +1368,6 @@ function iniciarTemporizador(callbackActualizarTexto) {
 
     actualizar();
 }
-
 
 function actualizarBarraMunicion() {
     const porcentajeMunicion = (noBalas / 15) * 100;
