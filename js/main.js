@@ -1788,7 +1788,7 @@ function crearFondoRadialPantalla(renderer, camera) {
 
     // Gradiente: pequeño centro transparente, resto cubierto
     const gradiente = ctx.createRadialGradient(
-        canvas.width / 2, canvas.height / 2, canvas.width * 0.05,  // Pequeño centro transparente
+        canvas.width / 2, canvas.height / 2, canvas.width * 0.01,  // Pequeño centro transparente
         canvas.width / 2, canvas.height / 2, canvas.width * 0.9    // Exterior cubre casi toda la pantalla
     );
 
