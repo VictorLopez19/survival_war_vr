@@ -652,7 +652,7 @@ loader.load('Mapa_op.glb', (gltf) => {
         modeloBase = gltfEnemy.scene;
         modeloAnimations = gltfEnemy.animations;
         // Ya se puede colocar porque el mapa existe
-        colocarEnemigos(min, size, 100);
+        colocarEnemigos(min, size, 150);
 
     });
 
@@ -1123,7 +1123,7 @@ function animate() {
 function incrementaNivel() {
     //Cada nivel aumenta dos enemigos más para matar
     if (noEnemigosNivel > puntajeNivel) {
-        perdio = true;
+        perdio = false;
     }
 
     noEnemigosNivel += 2;
@@ -1297,14 +1297,14 @@ function agregarBoton(txt = 'JUGAR AHORA', opc = 0) {
             document.body.requestPointerLock();
             container.addEventListener('mousedown', handleMouseDown);
 
-            iniciarTemporizador(texto => {
+            /*iniciarTemporizador(texto => {
                 if (marcadorUI?.userData?.centro?.userData?.actualizarTexto) {
                     marcadorUI.userData.centro.userData.actualizarTexto(texto);
                     marcadorUI.userData.centro.material.map.needsUpdate = true;
                     marcadorUI.userData.centro.material.needsUpdate = true;
                     marcadorUI.userData.centro.frustumCulled = false;
                 }
-            });
+            });*/
 
             mostrarAlerta();
             init();
@@ -1320,12 +1320,12 @@ function handleMouseDown() {
     mouseTime = performance.now();
 }
 
+let ultimoTexto = '';
+
 function iniciarTemporizador(callbackActualizarTexto) {
     const timeElement = document.getElementById('time');
     let tiempoInicio = Date.now();
     let duracionSegundos = 60;
-    let reiniciando = false;
-    let ultimoTexto = '';
 
     function actualizar() {
         const tiempoActual = Date.now();
@@ -1335,9 +1335,15 @@ function iniciarTemporizador(callbackActualizarTexto) {
         const segundosRestantes = Math.floor(tiempoRestante / 1000);
         const minutos = Math.floor(segundosRestantes / 60).toString().padStart(2, '0');
         const segundos = (segundosRestantes % 60).toString().padStart(2, '0');
+
         const texto = `${minutos}:${segundos}`;
 
-        // Solo actualizar si cambia el valor mostrado
+        // Actualiza el DOM si existe
+        if (timeElement) {
+            timeElement.textContent = texto;
+        }
+
+        // Si hay un callback externo, lo llama con el texto
         if (texto !== ultimoTexto) {
             ultimoTexto = texto;
 
@@ -1347,30 +1353,18 @@ function iniciarTemporizador(callbackActualizarTexto) {
 
             if (typeof callbackActualizarTexto === 'function') {
                 callbackActualizarTexto(texto);
-                console.log(texto)
+                scene.add(marcadorUI.userData.centro);
             }
         }
 
-        if (tiempoRestante <= 0 && !reiniciando) {
-            reiniciando = true;
+        // Cuando se cumple exactamente un ciclo completo
+        if (tiempoTranscurrido >= duracionSegundos * 1000) {
             incrementaNivel();
             if (vida > 0 && !perdio) {
                 mostrarAlerta();
             }
 
-            setTimeout(() => {
-                tiempoInicio = Date.now();
-                reiniciando = false;
-                ultimoTexto = "01:00";
-
-                if (timeElement) {
-                    timeElement.textContent = "01:00";
-                }
-
-                if (typeof callbackActualizarTexto === 'function') {
-                    callbackActualizarTexto("01:00");
-                }
-            }, 100);
+            tiempoInicio = Date.now(); // Reinicia el tiempo
         }
 
         requestAnimationFrame(actualizar);
@@ -1407,7 +1401,7 @@ function mostrarAlerta() {
     document.getElementById('txtDescript').innerHTML = 'Debes de terminar con ' + noEnemigosNivel + ' zombies';
     alerta.classList.add('mostrar'); // Muestra la alerta añadiendo la clase
 
-    crearAlertaMision('Debes de terminar con ' + noEnemigosNivel + ' zombies')
+    //crearAlertaMision('Debes de terminar con ' + noEnemigosNivel + ' zombies')
 
     setTimeout(() => {
         alerta.classList.remove('mostrar'); // La oculta después de 3 segundos
