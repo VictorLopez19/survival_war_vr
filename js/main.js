@@ -1325,6 +1325,7 @@ function iniciarTemporizador(callbackActualizarTexto) {
     let tiempoInicio = Date.now();
     let duracionSegundos = 60;
     let reiniciando = false;
+    let ultimoTexto = '';
 
     function actualizar() {
         const tiempoActual = Date.now();
@@ -1334,15 +1335,19 @@ function iniciarTemporizador(callbackActualizarTexto) {
         const segundosRestantes = Math.floor(tiempoRestante / 1000);
         const minutos = Math.floor(segundosRestantes / 60).toString().padStart(2, '0');
         const segundos = (segundosRestantes % 60).toString().padStart(2, '0');
-
         const texto = `${minutos}:${segundos}`;
 
-        if (timeElement) {
-            timeElement.textContent = texto;
-        }
+        // Solo actualizar si cambia el valor mostrado
+        if (texto !== ultimoTexto) {
+            ultimoTexto = texto;
 
-        if (typeof callbackActualizarTexto === 'function') {
-            callbackActualizarTexto(texto);
+            if (timeElement) {
+                timeElement.textContent = texto;
+            }
+
+            if (typeof callbackActualizarTexto === 'function') {
+                callbackActualizarTexto(texto);
+            }
         }
 
         if (tiempoRestante <= 0 && !reiniciando) {
@@ -1352,15 +1357,19 @@ function iniciarTemporizador(callbackActualizarTexto) {
                 mostrarAlerta();
             }
 
-            // Espera un frame para asegurar que se procese el cambio
             setTimeout(() => {
                 tiempoInicio = Date.now();
                 reiniciando = false;
+                ultimoTexto = "01:00";
+
+                if (timeElement) {
+                    timeElement.textContent = "01:00";
+                }
 
                 if (typeof callbackActualizarTexto === 'function') {
-                    callbackActualizarTexto("01:00"); // Forzar texto visual al reinicio
+                    callbackActualizarTexto("01:00");
                 }
-            }, 100); // 100 ms para dar margen a los visores VR
+            }, 100);
         }
 
         requestAnimationFrame(actualizar);
@@ -1368,6 +1377,7 @@ function iniciarTemporizador(callbackActualizarTexto) {
 
     actualizar();
 }
+
 
 function actualizarBarraMunicion() {
     const porcentajeMunicion = (noBalas / 15) * 100;
