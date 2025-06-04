@@ -66,43 +66,48 @@
 					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 				</div>
 				<div class="modal-body" id="informacion">
-					<p>El objetivo del juego es sobrevivir el mayor tiempo posible evitando que los zombis te eliminen, mientras completas misiones que se activan cada minuto. Contarás con un arma para defenderte, pero las balas son limitadas, así que úsalas con inteligencia.</p>
-	
+					<p>El objetivo del juego es sobrevivir el mayor tiempo posible evitando que los zombis te eliminen,
+						mientras completas misiones que se activan cada minuto. Contarás con un arma para defenderte,
+						pero las balas son limitadas, así que úsalas con inteligencia.</p>
+
 					<h6>Controles:</h6>
 					<ul>
 						<li class="mb-1">
-							<strong>Movimiento:</strong> Usa las teclas 
-							<span class="badge rounded-pill bg-dark">A</span> (izquierda), 
-							<span class="badge rounded-pill bg-dark">D</span> (derecha), 
-							<span class="badge rounded-pill bg-dark">W</span> (adelante), 
-							<span class="badge rounded-pill bg-dark">S</span> (atrás) y 
-							<span class="badge rounded-pill bg-dark">Espacio</span> para saltar.
+							<strong>Movimiento:</strong> Usa ambos joysticks de los controladores para desplazarte
+							libremente por el entorno.
 						</li>
 						<li>
-							<strong>Control de cámara:</strong> Usa el mouse para mirar a tu alrededor y ubicar a los enemigos.
+							<strong>Control de cámara:</strong> Mueve tu cabeza con las gafas VR para mirar a tu
+							alrededor y ubicar a los enemigos en el entorno.
 						</li>
 						<li>
-							<strong>Disparo:</strong> Apunta con el mouse hacia el zombi y haz clic para disparar. Cuentas con una mira que te ayuda a apuntar mejor.
+							<strong>Disparo:</strong> Apunta hacia el zombi usando el controlador derecho y presiona el
+							gatillo frontal para disparar. Utiliza la mira virtual para mejorar tu puntería.
 						</li>
+
 					</ul>
-	
+
 					<h6>Reglas:</h6>
 					<ul>
 						<li>Empiezas con <span class="badge rounded-pill bg-dark">100</span> de fuerza.</li>
-						<li>Cada ataque de un zombi reduce tu fuerza en <span class="badge rounded-pill bg-dark">10</span> puntos.</li>
-						<li>Recibirás una nueva bala cada <span class="badge rounded-pill bg-dark">1.5 segundos</span>, pero no se acumulan si llegas al límite.</li>
-						<li>Solo puedes tener un máximo de <span class="badge rounded-pill bg-dark">15</span> balas al mismo tiempo.</li>
+						<li>Cada ataque de un zombi reduce tu fuerza en <span
+								class="badge rounded-pill bg-dark">10</span> puntos.</li>
+						<li>Recibirás una nueva bala cada <span class="badge rounded-pill bg-dark">1.5 segundos</span>,
+							pero no se acumulan si llegas al límite.</li>
+						<li>Solo puedes tener un máximo de <span class="badge rounded-pill bg-dark">15</span> balas al
+							mismo tiempo.</li>
 					</ul>
-	
+
 					<h6>Sugerencias:</h6>
 					<ul>
-						<li>Elimina la mayor cantidad posible de zombis. ¡Tu puntaje se guarda y podrías llegar al top de jugadores!</li>
+						<li>Elimina la mayor cantidad posible de zombis. ¡Tu puntaje se guarda y podrías llegar al top
+							de jugadores!</li>
 					</ul>
 				</div>
 			</div>
 		</div>
 	</div>
-	
+
 
 	<!-- Modal Puntajes Más Altos -->
 	<div class="modal fade" id="modalPuntajes" tabindex="-1" aria-labelledby="modalPuntajesLabel" aria-hidden="true">
@@ -120,25 +125,25 @@
 	</div>
 
 	<!-- Modal para registrar el puntaje -->
-    <div class="modal fade" id="modalRegistroPuntaje" tabindex="-1" aria-labelledby="modalRegistroPuntajeLabel"
-        aria-hidden="false">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalRegistroPuntajeLabel">¡Felicidades!</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body text-center">
-                    <p>Has logrado uno de los 5 mejores puntajes. Ingresa tu nombre para guardarlo.</p>
-                    <input type="text" id="nombreJugador" class="form-control text-center mt-2" placeholder="Tu nombre"
-                        maxlength="10">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" id="btnPuntaje">Guardar</button>
-                </div>
-            </div>
-        </div>
-    </div>
+	<div class="modal fade" id="modalRegistroPuntaje" tabindex="-1" aria-labelledby="modalRegistroPuntajeLabel"
+		aria-hidden="false">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="modalRegistroPuntajeLabel">¡Felicidades!</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body text-center">
+					<p>Has logrado uno de los 5 mejores puntajes. Ingresa tu nombre para guardarlo.</p>
+					<input type="text" id="nombreJugador" class="form-control text-center mt-2" placeholder="Tu nombre"
+						maxlength="10">
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-primary" id="btnPuntaje">Guardar</button>
+				</div>
+			</div>
+		</div>
+	</div>
 
 	<!-- Contenedor de Three.js que ocupará el espacio restante -->
 	<div id="three-container">

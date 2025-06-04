@@ -1347,6 +1347,7 @@ function iniciarTemporizador(callbackActualizarTexto) {
 
             if (typeof callbackActualizarTexto === 'function') {
                 callbackActualizarTexto(texto);
+                console.log(texto)
             }
         }
 
@@ -1578,7 +1579,7 @@ function crearTextoPlano(texto, ancho = 1.2, alto = 0.6) {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
     canvas.height = 128;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true });
 
     function dibujarTexto(t) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1608,10 +1609,20 @@ function crearTextoPlano(texto, ancho = 1.2, alto = 0.6) {
     // Permitir actualización del texto
     mesh.userData.dibujarTexto = dibujarTexto;
     mesh.userData.texture = texture;
+
     mesh.userData.actualizarTexto = function (nuevoTexto) {
         if (mesh.userData.textoActual !== nuevoTexto) {
             mesh.userData.dibujarTexto(nuevoTexto);
+
+            // Forzar repintado visual en VR
             mesh.userData.texture.needsUpdate = true;
+            mesh.material.map.needsUpdate = true;
+            mesh.material.needsUpdate = true;
+
+            // Opcionalmente, marcar que se salga del frustum para que se redibuje
+            mesh.frustumCulled = false;
+
+            // Marca el texto como actualizado
             mesh.userData.textoActual = nuevoTexto;
         }
     };
