@@ -1675,7 +1675,7 @@ function crearMarcadorCompleto(textoIzq, textoCentro, textoDer) {
     der.position.set(1.6, 0, 0);
 
     marcador.add(izq);
-    marcador.add(centro);
+    //marcador.add(centro);
     marcador.add(der);
 
     // Guardar referencias para actualización
